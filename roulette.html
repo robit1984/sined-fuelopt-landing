@@ -4,37 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>SINED · Рулетка</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/winwheel@1.2.0/Winwheel.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,sans-serif;}
-        body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:10px;position:relative;overflow-x:hidden;}
-        
-        /* Фоновая картинка */
-        .bg-image {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 0;
-        }
-        
-        /* Затемнение для читаемости */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, #0a0a0f 90%);
-            z-index: 1;
-        }
-        
-        .game-card{position:relative;z-index:10;max-width:420px;width:100%;background:rgba(10,15,25,0.8);backdrop-filter:blur(12px);border:1px solid #00d4ff;border-radius:36px;padding:25px 18px;box-shadow:0 0 50px rgba(0,212,255,0.3);text-align:center;}
+        body{min-height:100vh;background:#0a0a0f;display:flex;align-items:center;justify-content:center;padding:10px;position:relative;overflow-x:hidden;}
+        #canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+        .game-card{position:relative;z-index:10;max-width:450px;width:100%;background:rgba(10,15,25,0.85);backdrop-filter:blur(12px);border:1px solid #00d4ff;border-radius:36px;padding:25px 18px;box-shadow:0 0 50px rgba(0,212,255,0.3);text-align:center;}
         h1{color:#00d4ff;font-size:36px;font-weight:800;letter-spacing:6px;text-shadow:0 0 20px #00d4ff;margin-bottom:15px;}
-        .wheel-wrapper{position:relative;width:min(300px,75vw);height:min(300px,75vw);margin:0 auto 20px;}
+        .wheel-wrapper{position:relative;width:min(320px,80vw);height:min(320px,80vw);margin:0 auto 20px;}
         canvas{width:100%!important;height:100%!important;display:block;border-radius:50%;box-shadow:0 0 40px #00d4ff80,inset 0 0 20px #000;}
-        .pointer{position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:32px solid #ff6b6b;filter:drop-shadow(0 0 8px #ff6b6b);z-index:10;}
+        .pointer{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:32px solid #ff6b6b;filter:drop-shadow(0 0 8px #ff6b6b);z-index:10;}
         .prize-panel{background:rgba(0,0,0,0.4);border:1.5px solid #00d4ff;border-radius:20px;padding:15px;margin:15px 0;}
         .prize-label{color:#aaa;font-size:14px;}
         .prize-value{color:#00ffaa;font-size:48px;font-weight:800;text-shadow:0 0 25px #00ffaa;}
@@ -47,10 +27,7 @@
     </style>
 </head>
 <body>
-    <!-- Твоя картинка на фоне -->
-    <img class="bg-image" src="https://i.haqqin.az/958234_crop_0_0a531b64a987d998.webp" alt="Фон">
-    <div class="overlay"></div>
-
+    <div id="canvas-container"></div>
     <div class="game-card">
         <h1>SINED</h1>
         <div class="wheel-wrapper">
@@ -65,57 +42,61 @@
         <div class="history" id="historyDisplay"></div>
         <a href="https://robit1984.github.io/sined-fuelopt-landing/" class="back-link">← На главную</a>
     </div>
-
     <script>
-        // ==================== РУЛЕТКА ====================
-        const canvas=document.getElementById('wheelCanvas'),ctx=canvas.getContext('2d');
-        const prizeDisplay=document.getElementById('prizeDisplay'),historyDiv=document.getElementById('historyDisplay');
+        // ========== 3D-ФОН ==========
+        const scene = new THREE.Scene();scene.background = new THREE.Color(0x0a0a0f);
+        const camera = new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);camera.position.set(2,1.5,7);
+        const renderer = new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        const light = new THREE.DirectionalLight(0xffeedd,1);light.position.set(5,8,5);scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404060));
+        const stars=new THREE.BufferGeometry();const pos=new Float32Array(2000*3);
+        for(let i=0;i<2000*3;i+=3){pos[i]=(Math.random()-0.5)*200;pos[i+1]=(Math.random()-0.5)*200;pos[i+2]=(Math.random()-0.5)*200;}
+        stars.setAttribute('position',new THREE.BufferAttribute(pos,3));
+        scene.add(new THREE.Points(stars,new THREE.PointsMaterial({color:0xffffff,size:0.15})));
+        function addDerrick(x,z,s,c){const g=new THREE.Group();const m=new THREE.MeshStandardMaterial({color:c});const leg=new THREE.BoxGeometry(0.15,2.5,0.15);[[-0.6,1.25,-0.4,0.1],[0.6,1.25,-0.4,-0.1],[-0.5,1.25,0.5,0.1],[0.5,1.25,0.5,-0.1]].forEach(p=>{const l=new THREE.Mesh(leg,m);l.position.set(p[0],p[1],p[2]);l.rotation.z=p[3];g.add(l);});g.position.set(x,-2.2,z);g.scale.set(s,s,s);scene.add(g);}
+        addDerrick(-2.5,-1,1,0x00d4ff);addDerrick(2.5,0,0.8,0x6c5ce7);
+        function animate(){requestAnimationFrame(animate);renderer.render(scene,camera);}animate();
+        window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+        // ========== РУЛЕТКА (Winwheel) ==========
+        const canvas=document.getElementById('wheelCanvas');
+        const prizeDisplay=document.getElementById('prizeDisplay');
+        const historyDiv=document.getElementById('historyDisplay');
         const spinBtn=document.getElementById('spinButton');
         
         const SEGMENTS=[
-            {label:'100',val:100,color:'#00d4ff'},{label:'50',val:50,color:'#6c5ce7'},{label:'20',val:20,color:'#00b894'},
-            {label:'10',val:10,color:'#fdcb6e'},{label:'5',val:5,color:'#e17055'},{label:'0',val:0,color:'#636e72'},
-            {label:'50',val:50,color:'#a29bfe'},{label:'100',val:100,color:'#00d4ff'}
+            {text:'100 л',fillStyle:'#00d4ff',textFontSize:18,value:100},
+            {text:'50 л',fillStyle:'#6c5ce7',textFontSize:18,value:50},
+            {text:'20 л',fillStyle:'#00b894',textFontSize:18,value:20},
+            {text:'10 л',fillStyle:'#fdcb6e',textFontSize:18,value:10},
+            {text:'5 л',fillStyle:'#e17055',textFontSize:18,value:5},
+            {text:'0 л',fillStyle:'#636e72',textFontSize:18,value:0},
+            {text:'50 л',fillStyle:'#a29bfe',textFontSize:18,value:50},
+            {text:'100 л',fillStyle:'#00d4ff',textFontSize:18,value:100}
         ];
-        const JACKPOT_CHANCE=0.001,JACKPOT_VAL=10000;
-        const PI=Math.PI,TAU=2*PI,ANGLE=TAU/SEGMENTS.length;
-        let rot=0,spinning=false,history=[];
         
-        function drawWheel(){
-            ctx.clearRect(0,0,400,400);
-            for(let i=0;i<SEGMENTS.length;i++){
-                const s=SEGMENTS[i],start=i*ANGLE+rot,end=start+ANGLE;
-                ctx.beginPath();ctx.moveTo(200,200);ctx.arc(200,200,200,start,end);ctx.closePath();
-                ctx.fillStyle=s.color;ctx.fill();ctx.strokeStyle='#0a0a0f';ctx.lineWidth=3;ctx.stroke();
-                ctx.save();ctx.translate(200,200);ctx.rotate(start+ANGLE/2);ctx.font='bold 20px "Segoe UI"';
-                ctx.fillStyle='white';ctx.shadowColor='black';ctx.shadowBlur=8;ctx.fillText(s.label,140,0);ctx.restore();
-            }
-            ctx.beginPath();ctx.arc(200,200,45,0,TAU);ctx.fillStyle='#0a0a0f';ctx.fill();
-            ctx.strokeStyle='#00d4ff';ctx.lineWidth=4;ctx.stroke();
-            ctx.font='bold 22px "Segoe UI"';ctx.fillStyle='#00d4ff';ctx.textAlign='center';ctx.textBaseline='middle';
-            ctx.fillText('SINED',200,200);
+        const wheel = new Winwheel({
+            canvasId:'wheelCanvas',numSegments:SEGMENTS.length,outerRadius:190,innerRadius:45,
+            textFontFamily:'Segoe UI',textFontWeight:'bold',textFillStyle:'#ffffff',textStrokeStyle:'#000',textLineWidth:2,
+            segments:SEGMENTS,
+            animation:{type:'spinToStop',duration:5,spins:8,callbackFinished:showResult}
+        });
+        
+        let history=[];
+        function showResult(){
+            const winner=wheel.getIndicatedSegment();
+            const jackpot=Math.random()<0.001;
+            let val=winner.value;
+            if(jackpot){val=10000;prizeDisplay.innerHTML=`🏆 ${val} <small>л</small>`;}
+            else prizeDisplay.innerHTML=`${val} <small>л</small>`;
+            history.unshift({val,jackpot});if(history.length>5)history.pop();
+            historyDiv.textContent='Последние: '+history.map(h=>h.jackpot?'🏆'+h.val+'л':h.val+'л').join(' ');
+            spinBtn.disabled=false;
         }
         
-        function spin(){
-            if(spinning)return;spinning=true;spinBtn.disabled=true;
-            const target=rot+(8+Math.random()*6)*TAU,start=Date.now();
-            function anim(){
-                const p=Math.min((Date.now()-start)/3000,1),ease=1-Math.pow(1-p,3);
-                rot=(rot+(target-rot)*ease)%TAU;drawWheel();
-                if(p<1)requestAnimationFrame(anim);
-                else{
-                    spinning=false;spinBtn.disabled=false;
-                    let winner;
-                    if(Math.random()<JACKPOT_CHANCE)winner={label:'ДЖЕКПОТ',val:JACKPOT_VAL,jackpot:true};
-                    else{const angle=(TAU-(rot%TAU)+TAU/2)%TAU;winner={...SEGMENTS[Math.floor(angle/ANGLE)],jackpot:false};}
-                    prizeDisplay.innerHTML=winner.jackpot?`🏆 ${winner.val} <small>л</small>`:`${winner.val} <small>л</small>`;
-                    history.unshift({val:winner.val,jackpot:winner.jackpot});if(history.length>5)history.pop();
-                    historyDiv.textContent='Последние: '+history.map(h=>h.jackpot?'🏆'+h.val+'л':h.val+'л').join(' ');
-                }
-            }
-            requestAnimationFrame(anim);
-        }
-        drawWheel();spinBtn.addEventListener('click',spin);
+        spinBtn.addEventListener('click',()=>{spinBtn.disabled=true;wheel.startAnimation();});
+        wheel.draw();
     </script>
 </body>
 </html>
