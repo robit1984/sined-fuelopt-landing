@@ -4,255 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>SINED · Рулетка</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        body {
-            min-height: 100vh;
-            background: #0a0a0f;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        /* ========== СЛАЙДЕР НА ФОНЕ ========== */
-        .background-slider {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-        }
-        .background-slider img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0;
-            transition: opacity 1.5s ease-in-out;
-        }
-        .background-slider img.active {
-            opacity: 0.35;
-        }
-        .background-slider::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, transparent 30%, #0a0a0f 90%);
-        }
-
-        /* Точки слайдера */
-        .slider-dots {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
-            display: flex;
-            gap: 12px;
-        }
-        .slider-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            border: 1.5px solid #00d4ff;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .slider-dot.active {
-            background: #00d4ff;
-            box-shadow: 0 0 15px #00d4ff;
-            transform: scale(1.3);
-        }
-
-        /* ========== ИГРОВОЙ КОНТЕЙНЕР ========== */
-        .game-container {
-            position: relative;
-            z-index: 10;
-            max-width: 500px;
-            width: 100%;
-            background: rgba(26, 26, 46, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid #00d4ff;
-            border-radius: 40px;
-            padding: 30px 20px;
-            box-shadow: 0 0 50px rgba(0, 212, 255, 0.3);
-            text-align: center;
-        }
-        h1 {
-            color: #00d4ff;
-            font-size: 36px;
-            font-weight: 800;
-            letter-spacing: 6px;
-            text-shadow: 0 0 20px #00d4ff;
-            margin-bottom: 20px;
-        }
-        .wheel-container {
-            position: relative;
-            width: 280px;
-            height: 280px;
-            margin: 0 auto 30px;
-        }
-        canvas {
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-            border-radius: 50%;
-            box-shadow: 0 0 40px rgba(0, 212, 255, 0.5), inset 0 0 20px rgba(0,0,0,0.5);
-        }
-        .pointer {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 40px solid #ff6b6b;
-            filter: drop-shadow(0 0 10px #ff6b6b);
-            z-index: 10;
-        }
-        .result-box {
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid #00d4ff;
-            border-radius: 20px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .result-label {
-            color: #aaa;
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-        .result-value {
-            color: #00ff88;
-            font-size: 56px;
-            font-weight: 800;
-            text-shadow: 0 0 30px #00ff88;
-            line-height: 1.2;
-        }
-        .result-value small {
-            font-size: 24px;
-            color: #00d4ff;
-        }
-        .btn {
-            background: linear-gradient(135deg, #00d4ff, #0099cc);
-            border: none;
-            color: #0a0a0f;
-            font-size: 24px;
-            font-weight: 700;
-            padding: 18px 30px;
-            border-radius: 60px;
-            width: 100%;
-            cursor: pointer;
-            box-shadow: 0 0 30px #00d4ff;
-            transition: 0.2s;
-            border: 1px solid rgba(255,255,255,0.3);
-            letter-spacing: 2px;
-        }
-        .btn:active {
-            transform: scale(0.96);
-        }
-        .btn:disabled {
-            opacity: 0.5;
-            box-shadow: none;
-            transform: none;
-        }
-        .history {
-            color: #8899aa;
-            font-size: 14px;
-            margin-top: 20px;
-        }
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #00d4ff;
-            text-decoration: none;
-            font-size: 16px;
-        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
+        body{min-height:100vh;background:#0a0a0f;display:flex;align-items:center;justify-content:center;padding:10px;position:relative;overflow-x:hidden;}
+        #canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+        .game-container{position:relative;z-index:10;max-width:450px;width:100%;background:rgba(26,26,46,0.85);backdrop-filter:blur(12px);border:1px solid #00d4ff;border-radius:36px;padding:25px 15px;box-shadow:0 0 50px rgba(0,212,255,0.3);text-align:center;}
+        h1{color:#00d4ff;font-size:34px;font-weight:800;letter-spacing:6px;text-shadow:0 0 20px #00d4ff;margin-bottom:15px;}
+        .wheel-container{position:relative;width:min(300px,80vw);height:min(300px,80vw);margin:0 auto 20px;}
+        canvas{width:100%!important;height:100%!important;display:block;border-radius:50%;box-shadow:0 0 40px rgba(0,212,255,0.5),inset 0 0 20px #000;}
+        .pointer{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:32px solid #ff6b6b;filter:drop-shadow(0 0 8px #ff6b6b);z-index:10;}
+        .result-box{background:rgba(0,0,0,0.5);border:2px solid #00d4ff;border-radius:20px;padding:15px;margin:15px 0;}
+        .result-label{color:#aaa;font-size:14px;}
+        .result-value{color:#00ff88;font-size:52px;font-weight:800;text-shadow:0 0 30px #00ff88;line-height:1.2;}
+        .result-value small{font-size:22px;color:#00d4ff;}
+        .btn{background:linear-gradient(135deg,#00d4ff,#0099cc);border:none;color:#0a0a0f;font-size:22px;font-weight:700;padding:16px;border-radius:60px;width:100%;cursor:pointer;box-shadow:0 0 30px #00d4ff;transition:0.2s;border:1px solid rgba(255,255,255,0.3);letter-spacing:2px;}
+        .btn:active{transform:scale(0.96);}
+        .btn:disabled{opacity:0.5;box-shadow:none;transform:none;}
+        .history{color:#8899aa;font-size:13px;margin-top:15px;}
+        .back-link{display:inline-block;margin-top:15px;color:#00d4ff;text-decoration:none;font-size:14px;}
     </style>
 </head>
 <body>
-
-    <!-- СЛАЙДЕР С ТРЕМЯ ФОТО -->
-    <div class="background-slider">
-        <img src="https://drive.google.com/thumbnail?id=1rA1LGG4kWtFRg5k6T&sz=w1920" alt="Фото 1" class="active">
-        <img src="https://drive.google.com/thumbnail?id=1cmRvkdl3jeYlysuAS&sz=w1920" alt="Фото 2">
-        <img src="https://drive.google.com/thumbnail?id=1cmRvkdl3jeYlysuAS&sz=w1920" alt="Фото 3">
-    </div>
-
-    <!-- ТОЧКИ СЛАЙДЕРА -->
-    <div class="slider-dots">
-        <div class="slider-dot active" data-index="0"></div>
-        <div class="slider-dot" data-index="1"></div>
-        <div class="slider-dot" data-index="2"></div>
-    </div>
-
+    <div id="canvas-container"></div>
     <div class="game-container">
         <h1>SINED</h1>
-        
         <div class="wheel-container">
             <div class="pointer"></div>
             <canvas id="wheelCanvas" width="400" height="400"></canvas>
         </div>
-        
         <div class="result-box">
             <div class="result-label">ВЫИГРЫШ</div>
             <div class="result-value" id="resultDisplay">0 <small>л</small></div>
         </div>
-        
         <button class="btn" id="spinBtn">КРУТИТЬ</button>
-        
         <div class="history" id="historyDisplay"></div>
-        
         <a href="https://robit1984.github.io/sined-fuelopt-landing/" class="back-link">← На главную</a>
     </div>
-    
     <script>
-        // ========== СЛАЙДЕР ==========
-        const images = document.querySelectorAll('.background-slider img');
-        const dots = document.querySelectorAll('.slider-dot');
-        let currentIndex = 0;
-        let sliderInterval;
-
-        function showSlide(index) {
-            images.forEach((img, i) => img.classList.toggle('active', i === index));
-            dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
-            currentIndex = index;
+        // 3D-фон
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0f);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(3, 2, 8);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+        
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffeedd, 1);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+        
+        const starsGeo = new THREE.BufferGeometry();
+        const starsPos = new Float32Array(2000 * 3);
+        for(let i=0;i<2000*3;i+=3){starsPos[i]=(Math.random()-0.5)*200;starsPos[i+1]=(Math.random()-0.5)*200;starsPos[i+2]=(Math.random()-0.5)*200;}
+        starsGeo.setAttribute('position',new THREE.BufferAttribute(starsPos,3));
+        scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xffffff,size:0.15})));
+        
+        function createDerrick(x,z,s=1,c=0x00d4ff){
+            const g = new THREE.Group();
+            const m = new THREE.MeshStandardMaterial({color:c});
+            const leg = new THREE.BoxGeometry(0.15,2.5,0.15);
+            const l1=new THREE.Mesh(leg,m);l1.position.set(-0.6,1.25,-0.4);l1.rotation.z=0.1;g.add(l1);
+            const l2=new THREE.Mesh(leg,m);l2.position.set(0.6,1.25,-0.4);l2.rotation.z=-0.1;g.add(l2);
+            const l3=new THREE.Mesh(leg,m);l3.position.set(-0.5,1.25,0.5);l3.rotation.z=0.1;g.add(l3);
+            const l4=new THREE.Mesh(leg,m);l4.position.set(0.5,1.25,0.5);l4.rotation.z=-0.1;g.add(l4);
+            g.position.set(x,-2,z);g.scale.set(s,s,s);return g;
         }
+        scene.add(createDerrick(-2,-1,1,0x00d4ff));
+        scene.add(createDerrick(2,0,0.8,0x6c5ce7));
+        
+        function animate(){requestAnimationFrame(animate);renderer.render(scene,camera);}
+        animate();
+        window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
 
-        function nextSlide() {
-            currentIndex = (currentIndex + 1) % images.length;
-            showSlide(currentIndex);
-        }
-
-        sliderInterval = setInterval(nextSlide, 4000);
-
-        dots.forEach((dot, i) => {
-            dot.addEventListener('click', () => {
-                clearInterval(sliderInterval);
-                showSlide(i);
-                sliderInterval = setInterval(nextSlide, 4000);
-            });
-        });
-
-        // ========== РУЛЕТКА ==========
+        // Рулетка
         const canvas = document.getElementById('wheelCanvas');
         const ctx = canvas.getContext('2d');
         const resultDisplay = document.getElementById('resultDisplay');
@@ -260,118 +89,59 @@
         const spinBtn = document.getElementById('spinBtn');
         
         const SEGMENTS = [
-            { label: '100 л', value: 100, color: '#00d4ff' },
-            { label: '50 л', value: 50, color: '#6c5ce7' },
-            { label: '20 л', value: 20, color: '#00b894' },
-            { label: '10 л', value: 10, color: '#fdcb6e' },
-            { label: '5 л', value: 5, color: '#e17055' },
-            { label: '0 л', value: 0, color: '#636e72' },
-            { label: 'ДЖЕКПОТ', value: 1000, color: '#ff6b6b' },
-            { label: '50 л', value: 50, color: '#a29bfe' }
+            { label: '100', value: 100, color: '#00d4ff' },
+            { label: '50', value: 50, color: '#6c5ce7' },
+            { label: '20', value: 20, color: '#00b894' },
+            { label: '10', value: 10, color: '#fdcb6e' },
+            { label: '5', value: 5, color: '#e17055' },
+            { label: '0', value: 0, color: '#636e72' },
+            { label: '50', value: 50, color: '#a29bfe' },
+            { label: '100', value: 100, color: '#00d4ff' }
         ];
+        const JACKPOT_CHANCE = 0.001;
+        const JACKPOT_VALUE = 10000;
+        const PI = Math.PI, TAU = 2*PI;
+        const ANGLE = TAU/SEGMENTS.length;
+        let rotation = 0, spinning = false, history = [];
         
-        const PI = Math.PI;
-        const TAU = 2 * PI;
-        const SEGMENT_ANGLE = TAU / SEGMENTS.length;
-        
-        let rotation = 0;
-        let spinning = false;
-        let history = [];
-        
-        function drawWheel() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            for (let i = 0; i < SEGMENTS.length; i++) {
-                const segment = SEGMENTS[i];
-                const startAngle = i * SEGMENT_ANGLE + rotation;
-                const endAngle = startAngle + SEGMENT_ANGLE;
-                
-                ctx.beginPath();
-                ctx.moveTo(200, 200);
-                ctx.arc(200, 200, 200, startAngle, endAngle);
-                ctx.closePath();
-                
-                ctx.fillStyle = segment.color;
-                ctx.fill();
-                ctx.strokeStyle = '#0a0a0f';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                
-                ctx.save();
-                ctx.translate(200, 200);
-                ctx.rotate(startAngle + SEGMENT_ANGLE / 2);
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.font = 'bold 18px "Segoe UI", Roboto, sans-serif';
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = '#000';
-                ctx.shadowBlur = 8;
-                ctx.fillText(segment.label, 130, 0);
-                ctx.restore();
+        function draw(){
+            ctx.clearRect(0,0,400,400);
+            for(let i=0;i<SEGMENTS.length;i++){
+                const s=SEGMENTS[i], start=i*ANGLE+rotation, end=start+ANGLE;
+                ctx.beginPath();ctx.moveTo(200,200);ctx.arc(200,200,200,start,end);ctx.closePath();
+                ctx.fillStyle=s.color;ctx.fill();
+                ctx.strokeStyle='#0a0a0f';ctx.lineWidth=3;ctx.stroke();
+                ctx.save();ctx.translate(200,200);ctx.rotate(start+ANGLE/2);
+                ctx.font='bold 20px "Segoe UI"';ctx.fillStyle='#fff';ctx.shadowColor='#000';ctx.shadowBlur=8;
+                ctx.fillText(s.label,140,0);ctx.restore();
             }
-            
-            ctx.beginPath();
-            ctx.arc(200, 200, 40, 0, TAU);
-            ctx.fillStyle = '#0a0a0f';
-            ctx.fill();
-            ctx.strokeStyle = '#00d4ff';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            
-            ctx.font = 'bold 20px "Segoe UI"';
-            ctx.fillStyle = '#00d4ff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('SINED', 200, 200);
+            ctx.beginPath();ctx.arc(200,200,45,0,TAU);ctx.fillStyle='#0a0a0f';ctx.fill();
+            ctx.strokeStyle='#00d4ff';ctx.lineWidth=4;ctx.stroke();
+            ctx.font='bold 22px "Segoe UI"';ctx.fillStyle='#00d4ff';ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillText('SINED',200,200);
         }
         
-        function getWinner() {
-            const angle = (TAU - (rotation % TAU) + TAU / 2) % TAU;
-            const index = Math.floor(angle / SEGMENT_ANGLE);
-            return SEGMENTS[index];
-        }
-        
-        function spin() {
-            if (spinning) return;
-            spinning = true;
-            spinBtn.disabled = true;
-            
-            const spins = 8 + Math.random() * 6;
-            const targetRotation = rotation + spins * TAU;
-            const duration = 3000;
-            const startTime = Date.now();
-            
-            function animate() {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                
-                rotation = (rotation + (targetRotation - rotation) * easeOut) % TAU;
-                drawWheel();
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    spinning = false;
-                    spinBtn.disabled = false;
-                    
-                    const winner = getWinner();
-                    resultDisplay.innerHTML = `${winner.value} <small>л</small>`;
-                    
-                    history.unshift({ value: winner.value, time: new Date().toLocaleTimeString() });
-                    if (history.length > 5) history.pop();
-                    
-                    let historyText = 'Последние выигрыши: ';
-                    history.forEach(h => { historyText += `${h.value}л `; });
-                    historyDisplay.textContent = historyText;
+        function spin(){
+            if(spinning)return;
+            spinning=true;spinBtn.disabled=true;
+            const spins=8+Math.random()*6, target=rotation+spins*TAU, start=Date.now();
+            function anim(){
+                const p=Math.min((Date.now()-start)/3000,1), ease=1-Math.pow(1-p,3);
+                rotation=(rotation+(target-rotation)*ease)%TAU;draw();
+                if(p<1)requestAnimationFrame(anim);
+                else{
+                    spinning=false;spinBtn.disabled=false;
+                    let winner;
+                    if(Math.random()<JACKPOT_CHANCE) winner={label:'🏆ДЖЕКПОТ🏆',value:JACKPOT_VALUE,isJackpot:true};
+                    else{const angle=(TAU-(rotation%TAU)+TAU/2)%TAU;winner={...SEGMENTS[Math.floor(angle/ANGLE)],isJackpot:false};}
+                    resultDisplay.innerHTML=winner.isJackpot?`🏆 ${winner.value} <small>л</small> 🏆`:`${winner.value} <small>л</small>`;
+                    history.unshift({value:winner.value,isJackpot:winner.isJackpot});if(history.length>5)history.pop();
+                    historyDisplay.textContent='Последние: '+history.map(h=>h.isJackpot?'🏆'+h.value+'л':h.value+'л').join(' ');
                 }
             }
-            
-            requestAnimationFrame(animate);
+            requestAnimationFrame(anim);
         }
-        
-        drawWheel();
-        spinBtn.addEventListener('click', spin);
+        draw();spinBtn.addEventListener('click',spin);
     </script>
 </body>
 </html>
