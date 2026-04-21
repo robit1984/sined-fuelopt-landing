@@ -4,17 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>SINED · Рулетка</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/winwheel@1.2.0/Winwheel.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,sans-serif;}
         body{min-height:100vh;background:#0a0a0f;display:flex;align-items:center;justify-content:center;padding:10px;position:relative;overflow-x:hidden;}
-        #canvas-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
-        .game-card{position:relative;z-index:10;max-width:450px;width:100%;background:rgba(10,15,25,0.85);backdrop-filter:blur(12px);border:1px solid #00d4ff;border-radius:36px;padding:25px 18px;box-shadow:0 0 50px rgba(0,212,255,0.3);text-align:center;}
+        
+        /* Слайдер на фоне */
+        .slider-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+        .slider-bg img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.5s;}
+        .slider-bg img.active{opacity:0.35;}
+        .slider-bg::after{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 50% 50%,transparent 30%,#0a0a0f 95%);}
+        
+        .game-card{position:relative;z-index:10;max-width:420px;width:100%;background:rgba(10,15,25,0.8);backdrop-filter:blur(12px);border:1px solid #00d4ff;border-radius:36px;padding:25px 18px;box-shadow:0 0 50px rgba(0,212,255,0.3);text-align:center;}
         h1{color:#00d4ff;font-size:36px;font-weight:800;letter-spacing:6px;text-shadow:0 0 20px #00d4ff;margin-bottom:15px;}
-        .wheel-wrapper{position:relative;width:min(320px,80vw);height:min(320px,80vw);margin:0 auto 20px;}
+        .wheel-wrapper{position:relative;width:min(300px,75vw);height:min(300px,75vw);margin:0 auto 20px;}
         canvas{width:100%!important;height:100%!important;display:block;border-radius:50%;box-shadow:0 0 40px #00d4ff80,inset 0 0 20px #000;}
-        .pointer{position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:32px solid #ff6b6b;filter:drop-shadow(0 0 8px #ff6b6b);z-index:10;}
+        .pointer{position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:32px solid #ff6b6b;filter:drop-shadow(0 0 8px #ff6b6b);z-index:10;}
         .prize-panel{background:rgba(0,0,0,0.4);border:1.5px solid #00d4ff;border-radius:20px;padding:15px;margin:15px 0;}
         .prize-label{color:#aaa;font-size:14px;}
         .prize-value{color:#00ffaa;font-size:48px;font-weight:800;text-shadow:0 0 25px #00ffaa;}
@@ -24,10 +28,26 @@
         .spin-btn:disabled{opacity:0.5;box-shadow:none;}
         .history{color:#88a;font-size:13px;margin-top:15px;}
         .back-link{display:inline-block;margin-top:12px;color:#00d4ff;text-decoration:none;font-size:14px;}
+        .slider-dots{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:10px;}
+        .slider-dot{width:8px;height:8px;border-radius:50%;background:#fff3;border:1px solid #00d4ff;cursor:pointer;transition:0.3s;}
+        .slider-dot.active{background:#00d4ff;box-shadow:0 0 10px #00d4ff;transform:scale(1.3);}
     </style>
 </head>
 <body>
-    <div id="canvas-container"></div>
+    <div class="slider-bg">
+        <img src="https://images.pexels.com/photos/221012/pexels-photo-221012.jpeg?auto=compress&cs=tinysrgb&w=1920" alt="Нефтяная вышка" class="active">
+        <img src="https://images.pexels.com/photos/1117210/pexels-photo-1117210.jpeg?auto=compress&cs=tinysrgb&w=1920" alt="Порт и краны">
+        <img src="https://images.pexels.com/photos/2199293/pexels-photo-2199293.jpeg?auto=compress&cs=tinysrgb&w=1920" alt="Бензовоз">
+        <img src="https://images.pexels.com/photos/1267338/pexels-photo-1267338.jpeg?auto=compress&cs=tinysrgb&w=1920" alt="Самолёт">
+        <img src="https://images.pexels.com/photos/259620/pexels-photo-259620.jpeg?auto=compress&cs=tinysrgb&w=1920" alt="Экскаватор">
+    </div>
+    <div class="slider-dots">
+        <div class="slider-dot active" data-index="0"></div>
+        <div class="slider-dot" data-index="1"></div>
+        <div class="slider-dot" data-index="2"></div>
+        <div class="slider-dot" data-index="3"></div>
+        <div class="slider-dot" data-index="4"></div>
+    </div>
     <div class="game-card">
         <h1>SINED</h1>
         <div class="wheel-wrapper">
@@ -43,60 +63,68 @@
         <a href="https://robit1984.github.io/sined-fuelopt-landing/" class="back-link">← На главную</a>
     </div>
     <script>
-        // ========== 3D-ФОН ==========
-        const scene = new THREE.Scene();scene.background = new THREE.Color(0x0a0a0f);
-        const camera = new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);camera.position.set(2,1.5,7);
-        const renderer = new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
-        const light = new THREE.DirectionalLight(0xffeedd,1);light.position.set(5,8,5);scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404060));
-        const stars=new THREE.BufferGeometry();const pos=new Float32Array(2000*3);
-        for(let i=0;i<2000*3;i+=3){pos[i]=(Math.random()-0.5)*200;pos[i+1]=(Math.random()-0.5)*200;pos[i+2]=(Math.random()-0.5)*200;}
-        stars.setAttribute('position',new THREE.BufferAttribute(pos,3));
-        scene.add(new THREE.Points(stars,new THREE.PointsMaterial({color:0xffffff,size:0.15})));
-        function addDerrick(x,z,s,c){const g=new THREE.Group();const m=new THREE.MeshStandardMaterial({color:c});const leg=new THREE.BoxGeometry(0.15,2.5,0.15);[[-0.6,1.25,-0.4,0.1],[0.6,1.25,-0.4,-0.1],[-0.5,1.25,0.5,0.1],[0.5,1.25,0.5,-0.1]].forEach(p=>{const l=new THREE.Mesh(leg,m);l.position.set(p[0],p[1],p[2]);l.rotation.z=p[3];g.add(l);});g.position.set(x,-2.2,z);g.scale.set(s,s,s);scene.add(g);}
-        addDerrick(-2.5,-1,1,0x00d4ff);addDerrick(2.5,0,0.8,0x6c5ce7);
-        function animate(){requestAnimationFrame(animate);renderer.render(scene,camera);}animate();
-        window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+        // Слайдер
+        const images=document.querySelectorAll('.slider-bg img'),dots=document.querySelectorAll('.slider-dot');
+        let idx=0,interval;
+        function show(i){images.forEach((img,j)=>img.classList.toggle('active',j===i));dots.forEach((d,j)=>d.classList.toggle('active',j===i));idx=i;}
+        function next(){idx=(idx+1)%images.length;show(idx);}
+        interval=setInterval(next,5000);
+        dots.forEach((d,i)=>d.addEventListener('click',()=>{clearInterval(interval);show(i);interval=setInterval(next,5000);}));
 
-        // ========== РУЛЕТКА (Winwheel) ==========
-        const canvas=document.getElementById('wheelCanvas');
-        const prizeDisplay=document.getElementById('prizeDisplay');
-        const historyDiv=document.getElementById('historyDisplay');
+        // Рулетка
+        const canvas=document.getElementById('wheelCanvas'),ctx=canvas.getContext('2d');
+        const prizeDisplay=document.getElementById('prizeDisplay'),historyDiv=document.getElementById('historyDisplay');
         const spinBtn=document.getElementById('spinButton');
         
         const SEGMENTS=[
-            {text:'100 л',fillStyle:'#00d4ff',textFontSize:18,value:100},
-            {text:'50 л',fillStyle:'#6c5ce7',textFontSize:18,value:50},
-            {text:'20 л',fillStyle:'#00b894',textFontSize:18,value:20},
-            {text:'10 л',fillStyle:'#fdcb6e',textFontSize:18,value:10},
-            {text:'5 л',fillStyle:'#e17055',textFontSize:18,value:5},
-            {text:'0 л',fillStyle:'#636e72',textFontSize:18,value:0},
-            {text:'50 л',fillStyle:'#a29bfe',textFontSize:18,value:50},
-            {text:'100 л',fillStyle:'#00d4ff',textFontSize:18,value:100}
+            {label:'100',val:100,color:'#00d4ff'},{label:'50',val:50,color:'#6c5ce7'},{label:'20',val:20,color:'#00b894'},
+            {label:'10',val:10,color:'#fdcb6e'},{label:'5',val:5,color:'#e17055'},{label:'0',val:0,color:'#636e72'},
+            {label:'50',val:50,color:'#a29bfe'},{label:'100',val:100,color:'#00d4ff'}
         ];
+        const JACKPOT_CHANCE=0.001,JACKPOT_VAL=10000;
+        const PI=Math.PI,TAU=2*PI,ANGLE=TAU/SEGMENTS.length;
+        let rot=0,spinning=false,history=[];
         
-        const wheel = new Winwheel({
-            canvasId:'wheelCanvas',numSegments:SEGMENTS.length,outerRadius:190,innerRadius:45,
-            textFontFamily:'Segoe UI',textFontWeight:'bold',textFillStyle:'#ffffff',textStrokeStyle:'#000',textLineWidth:2,
-            segments:SEGMENTS,
-            animation:{type:'spinToStop',duration:5,spins:8,callbackFinished:showResult}
-        });
-        
-        let history=[];
-        function showResult(){
-            const winner=wheel.getIndicatedSegment();
-            const jackpot=Math.random()<0.001;
-            let val=winner.value;
-            if(jackpot){val=10000;prizeDisplay.innerHTML=`🏆 ${val} <small>л</small>`;}
-            else prizeDisplay.innerHTML=`${val} <small>л</small>`;
-            history.unshift({val,jackpot});if(history.length>5)history.pop();
-            historyDiv.textContent='Последние: '+history.map(h=>h.jackpot?'🏆'+h.val+'л':h.val+'л').join(' ');
-            spinBtn.disabled=false;
+        function draw(){
+            ctx.clearRect(0,0,400,400);
+            for(let i=0;i<SEGMENTS.length;i++){
+                const s=SEGMENTS[i],start=i*ANGLE+rot,end=start+ANGLE;
+                ctx.beginPath();ctx.moveTo(200,200);ctx.arc(200,200,200,start,end);ctx.closePath();
+                ctx.fillStyle=s.color;ctx.fill();ctx.strokeStyle='#0a0a0f';ctx.lineWidth=3;ctx.stroke();
+                ctx.save();ctx.translate(200,200);ctx.rotate(start+ANGLE/2);ctx.font='bold 20px "Segoe UI"';
+                ctx.fillStyle='white';ctx.shadowColor='black';ctx.shadowBlur=8;ctx.fillText(s.label,140,0);ctx.restore();
+            }
+            ctx.beginPath();ctx.arc(200,200,45,0,TAU);ctx.fillStyle='#0a0a0f';ctx.fill();
+            ctx.strokeStyle='#00d4ff';ctx.lineWidth=4;ctx.stroke();
+            ctx.font='bold 22px "Segoe UI"';ctx.fillStyle='#00d4ff';ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillText('SINED',200,200);
         }
         
-        spinBtn.addEventListener('click',()=>{spinBtn.disabled=true;wheel.startAnimation();});
-        wheel.draw();
+        function getWinner(){
+            const angle=(TAU-(rot%TAU)+TAU/2)%TAU;
+            return SEGMENTS[Math.floor(angle/ANGLE)];
+        }
+        
+        function spin(){
+            if(spinning)return;spinning=true;spinBtn.disabled=true;
+            const target=rot+(8+Math.random()*6)*TAU,start=Date.now();
+            function anim(){
+                const p=Math.min((Date.now()-start)/3000,1),ease=1-Math.pow(1-p,3);
+                rot=(rot+(target-rot)*ease)%TAU;draw();
+                if(p<1)requestAnimationFrame(anim);
+                else{
+                    spinning=false;spinBtn.disabled=false;
+                    const winner=getWinner();
+                    let val=winner.val,isJackpot=false;
+                    if(Math.random()<JACKPOT_CHANCE){val=JACKPOT_VAL;isJackpot=true;}
+                    prizeDisplay.innerHTML=isJackpot?`🏆 ${val} <small>л</small>`:`${val} <small>л</small>`;
+                    history.unshift({val,isJackpot});if(history.length>5)history.pop();
+                    historyDiv.textContent='Последние: '+history.map(h=>h.isJackpot?'🏆'+h.val+'л':h.val+'л').join(' ');
+                }
+            }
+            requestAnimationFrame(anim);
+        }
+        draw();spinBtn.addEventListener('click',spin);
     </script>
 </body>
 </html>
