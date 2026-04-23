@@ -151,13 +151,14 @@
             ctx.textBaseline = 'middle';
             ctx.fillText('SINED', centerX, centerY);
         }
-        
         function getPrize() {
-            const angleStep = (Math.PI * 2) / sectors.length;
-            const pointerAngle = (rotation + Math.PI * 1.5) % (Math.PI * 2);
-            const index = Math.floor(sectors.length - (pointerAngle / angleStep)) % sectors.length;
-            return sectors[index].prize;
-        }
+    const angleStep = (Math.PI * 2) / sectors.length;
+    const normalizedRotation = (rotation % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+    const pointerAngle = (Math.PI * 1.5 - normalizedRotation + Math.PI * 2) % (Math.PI * 2);
+    const index = Math.floor(pointerAngle / angleStep);
+    return sectors[index].prize;
+}
+        
         
         function spin() {
             if (spinning) return;
