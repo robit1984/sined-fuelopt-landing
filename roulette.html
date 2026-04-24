@@ -1,210 +1,269 @@
-<!-- force refresh 2026-04-21 15:00 --><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>🎰 РУЛЕТКА SINED</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            background: #0a0a0f;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        #roulette-container {
-            text-align: center;
-            color: white;
-            max-width: 500px;
-            width: 100%;
-        }
-        .wheel-wrapper {
-            position: relative;
-            width: min(85vw, 450px);
-            height: min(85vw, 450px);
-            margin: 20px auto;
-        }
-        #wheelCanvas {
-            width: 100% !important;
-            height: 100% !important;
-            display: block;
-            background: #111;
-            border-radius: 50%;
-            box-shadow: 0 0 30px #00d4ff;
-        }
-        .pointer {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 25px solid transparent;
-            border-right: 25px solid transparent;
-            border-top: 50px solid #ffd700;
-            filter: drop-shadow(0 0 20px gold);
-            z-index: 20;
-        }
-        .spin-btn {
-            background: #00d4ff;
-            border: none;
-            color: #0a0a0f;
-            font-weight: bold;
-            font-size: 28px;
-            padding: 18px 50px;
-            border-radius: 60px;
-            margin: 20px 0;
-            cursor: pointer;
-            box-shadow: 0 0 40px #00d4ff;
-        }
-        .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .result {
-            font-size: 32px;
-            font-weight: bold;
-            min-height: 50px;
-            color: #00ffaa;
-        }
-        h1 {
-            color: #00d4ff;
-            margin-bottom: 10px;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,sans-serif;}
+        body{min-height:100vh;background:#0a0a0f;display:flex;align-items:center;justify-content:center;position:relative;overflow-x:hidden;}
+        #canvas-neural{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;}
+        
+        .game-card{position:relative;z-index:10;max-width:450px;width:100%;background:rgba(10,15,25,0.85);backdrop-filter:blur(12px);border:1px solid #00d4ff;border-radius:36px;padding:20px 15px;box-shadow:0 0 50px rgba(0,212,255,0.3);text-align:center;margin-bottom:60px;}
+        
+        /* Табло джекпота */
+        .jackpot-bar{background:linear-gradient(135deg,#ff006e20,#ff8c4220);border:1px solid #ff006e;border-radius:16px;padding:10px 15px;margin-bottom:12px;overflow:hidden;white-space:nowrap;}
+        .jackpot-track{display:inline-block;animation:jackpotScroll 8s linear infinite;}
+        .jackpot-track span{margin:0 30px;color:#aaa;}
+        .jackpot-track .label{color:#ff006e;font-weight:800;font-size:16px;}
+        .jackpot-track .val{color:#ffd700;font-weight:800;}
+        
+        h1{color:#00d4ff;font-size:28px;font-weight:800;letter-spacing:4px;text-shadow:0 0 20px #00d4ff;margin-bottom:10px;}
+        .wheel-wrapper{position:relative;width:min(75vw,350px);height:min(75vw,350px);margin:0 auto 15px;}
+        #wheelCanvas{width:100%!important;height:100%!important;display:block;border-radius:50%;box-shadow:0 0 40px #00d4ff80,inset 0 0 20px #000;}
+        .pointer{position:absolute;top:-12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:40px solid #ffd700;filter:drop-shadow(0 0 12px gold);z-index:20;}
+        .prize-panel{background:rgba(0,0,0,0.4);border:1.5px solid #00d4ff;border-radius:20px;padding:12px;margin:12px 0;}
+        .prize-label{color:#aaa;font-size:14px;}
+        .prize-value{color:#00ffaa;font-size:44px;font-weight:800;text-shadow:0 0 25px #00ffaa;}
+        .prize-value small{font-size:18px;color:#00d4ff;}
+        .spin-btn{background:linear-gradient(145deg,#00d4ff,#0088cc);border:none;color:#0a0a0f;font-size:24px;font-weight:700;padding:16px;border-radius:60px;width:100%;cursor:pointer;box-shadow:0 0 30px #00d4ff;transition:0.2s;border:1px solid #ffffff30;letter-spacing:2px;margin-top:5px;}
+        .spin-btn:active{transform:scale(0.97);}
+        .spin-btn:disabled{opacity:0.5;box-shadow:none;}
+        .back-link{display:inline-block;margin-top:10px;color:#00d4ff;text-decoration:none;font-size:14px;}
+        
+        /* Экосистема */
+        .ecosystem{text-align:left;margin-top:15px;padding:14px;background:rgba(108,92,231,0.15);border:1px solid #6c5ce7;border-radius:16px;font-size:13px;line-height:1.6;}
+        .ecosystem .ttl{color:#a29bfe;font-weight:700;margin-bottom:8px;}
+        .ecosystem .itm{margin-bottom:4px;}
+        
+        /* Бегущая лента */
+        .partner-bar{position:fixed;bottom:0;left:0;width:100%;background:rgba(10,15,25,0.95);border-top:1px solid #00d4ff;backdrop-filter:blur(8px);z-index:20;padding:8px 0;overflow:hidden;white-space:nowrap;}
+        .partner-track{display:inline-block;animation:scroll 35s linear infinite;}
+        .partner-item{display:inline-block;color:#e0e0e0;font-size:13px;margin:0 30px;padding:5px 14px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:20px;}
+        .partner-item span{color:#00ffaa;font-weight:bold;}
+        
+        @keyframes scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+        @keyframes jackpotScroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+    </style>
 </head>
 <body>
-    <div id="roulette-container">
-        <h1>🎰 SINED ROULETTE</h1>
+    <canvas id="canvas-neural"></canvas>
+
+    <div class="game-card">
+        <!-- Бегущее табло джекпота -->
+        <div class="jackpot-bar">
+            <div class="jackpot-track">
+                <span class="label">🏆 ДЖЕКПОТ: <span class="val" id="jackpotDisplay">0</span> ЛИТРОВ!</span>
+                <span>|</span>
+                <span>🎰 Крутите рулетку — срывайте банк!</span>
+                <span>|</span>
+                <span>📈 Каждое платное вращение +1-5 л в джекпот</span>
+                <!-- Дубли для бесшовной анимации -->
+                <span class="label">🏆 ДЖЕКПОТ: <span class="val" id="jackpotDisplay2">0</span> ЛИТРОВ!</span>
+                <span>|</span>
+                <span>🎰 Крутите рулетку — срывайте банк!</span>
+                <span>|</span>
+                <span>📈 Каждое платное вращение +1-5 л в джекпот</span>
+            </div>
+        </div>
+
+        <h1>SINED</h1>
         <div class="wheel-wrapper">
             <div class="pointer"></div>
-            <canvas id="wheelCanvas" width="600" height="600"></canvas>
+            <canvas id="wheelCanvas" width="500" height="500"></canvas>
+        </div>
+        <div class="prize-panel">
+            <div class="prize-label">ВЫИГРЫШ</div>
+            <div class="prize-value" id="prizeDisplay">0 <small>л</small></div>
         </div>
         <button class="spin-btn" id="spinButton">🎰 КРУТИТЬ</button>
-        <div class="result" id="result"></div>
+
+        <!-- Экосистема -->
+        <div class="ecosystem">
+            <div class="ttl">🌐 ЭКОСИСТЕМА SINED</div>
+            <div class="itm">💰 <b style="color:#00ffaa;">$SINED</b> — внутренние токены. 1 токен = 1 ₽ скидки на топливо.</div>
+            <div class="itm">🎰 <b style="color:#ffd700;">Рулетка</b> — крутите бесплатно раз в день или за 1 $SINED.</div>
+            <div class="itm">🏆 <b style="color:#ff006e;">Джекпот</b> — копится с каждого платного вращения. Сорвать может любой!</div>
+            <div class="itm">🛢️ <b style="color:#00d4ff;">Бонусные литры</b> — списывайте до 10% от объёма заказа.</div>
+            <div class="itm">👥 <b style="color:#a29bfe;">Рефералы</b> — пригласи друга и получи +200 $SINED.</div>
+            <div class="itm">🎗️ <b style="color:#ff8c42;">Партнёры</b> — скидки до 20% у наших партнёров.</div>
+        </div>
+
+        <a href="https://robit1984.github.io/sined-fuelopt-landing/" class="back-link">← На главную</a>
+    </div>
+
+    <!-- Бегущая лента партнёров -->
+    <div class="partner-bar">
+        <div class="partner-track">
+            <span class="partner-item">🛒 Яндекс.Заправки <span>-15%</span></span>
+            <span class="partner-item">🛍️ OZON <span>-10%</span></span>
+            <span class="partner-item">🚗 Автодок <span>-20%</span></span>
+            <span class="partner-item">🏪 Лента <span>-5%</span></span>
+            <span class="partner-item">🔧 FIT SERVICE <span>-12%</span></span>
+            <span class="partner-item">🛒 Яндекс.Заправки <span>-15%</span></span>
+            <span class="partner-item">🛍️ OZON <span>-10%</span></span>
+            <span class="partner-item">🚗 Автодок <span>-20%</span></span>
+            <span class="partner-item">🏪 Лента <span>-5%</span></span>
+            <span class="partner-item">🔧 FIT SERVICE <span>-12%</span></span>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('wheelCanvas');
-        const ctx = canvas.getContext('2d');
+        // ========== РУЛЕТКА ==========
+        const canvas=document.getElementById('wheelCanvas'),ctx=canvas.getContext('2d');
+        const prizeDisplay=document.getElementById('prizeDisplay'),spinBtn=document.getElementById('spinButton');
+        const jackpotDisplay=document.getElementById('jackpotDisplay'),jackpotDisplay2=document.getElementById('jackpotDisplay2');
         
-        const sectors = [
-            { label: '100 Л', color: '#00d4ff', prize: 100 },
-            { label: '50 Л', color: '#6c5ce7', prize: 50 },
-            { label: '20 Л', color: '#ff6b6b', prize: 20 },
-            { label: '10 Л', color: '#ffd93d', prize: 10 },
-            { label: '5 Л', color: '#6bcb77', prize: 5 },
-            { label: '0 Л', color: '#4d4d4d', prize: 0 },
+        const sectors=[
+            {label:'ДЖЕКПОТ',color:'#ff006e',prize:'jackpot'},
+            {label:'50 Л',color:'#ff6b6b',prize:50},
+            {label:'40 Л',color:'#ff8c42',prize:40},
+            {label:'0 Л',color:'#4d4d4d',prize:0},
+            {label:'30 Л',color:'#00d4ff',prize:30},
+            {label:'0 Л',color:'#4d4d4d',prize:0},
+            {label:'20 Л',color:'#6c5ce7',prize:20},
+            {label:'10 Л',color:'#ffd93d',prize:10},
+            {label:'0 Л',color:'#4d4d4d',prize:0},
+            {label:'5 Л',color:'#6bcb77',prize:5},
         ];
         
-        let rotation = 0;
-        let spinning = false;
+        const SUPER_PRIZES=[
+            {name:'📱 iPhone 17 Pro',chance:0.0005},
+            {name:'🚲 Велосипед STELS',chance:0.0008},
+            {name:'🏍️ Мотоцикл Kawasaki',chance:0.0003},
+            {name:'🚗 Lada Granta 2026',chance:0.0001},
+        ];
         
-        function drawWheel() {
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = Math.min(centerX, centerY) - 15;
-            const angleStep = (Math.PI * 2) / sectors.length;
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            sectors.forEach((sector, i) => {
-                const startAngle = i * angleStep + rotation;
-                const endAngle = startAngle + angleStep;
-                
-                ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-                ctx.closePath();
-                
-                ctx.fillStyle = sector.color;
-                ctx.fill();
-                ctx.strokeStyle = '#0a0a0f';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                
-                ctx.save();
-                ctx.translate(centerX, centerY);
-                ctx.rotate(startAngle + angleStep / 2);
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 22px Segoe UI';
-                ctx.shadowColor = '#000';
-                ctx.shadowBlur = 8;
-                ctx.fillText(sector.label, radius * 0.7, 0);
-                ctx.restore();
-            });
-            
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
-            ctx.fillStyle = '#0a0a0f';
-            ctx.fill();
-            ctx.strokeStyle = '#00d4ff';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            
-            ctx.font = 'bold 20px Segoe UI';
-            ctx.fillStyle = '#00d4ff';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('SINED', centerX, centerY);
+        let rot=0,spinning=false,jackpotTotal=0;
+        const PI=Math.PI,TAU=2*PI,ANGLE=TAU/sectors.length;
+        
+        function updateJackpotDisplay(){
+            jackpotDisplay.textContent=jackpotTotal;
+            jackpotDisplay2.textContent=jackpotTotal;
         }
-        function getPrize() {
-    const angleStep = (Math.PI * 2) / sectors.length;
-    const normalizedRotation = (rotation % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-    const pointerAngle = (Math.PI * 1.5 - normalizedRotation + Math.PI * 2) % (Math.PI * 2);
-    const index = Math.floor(pointerAngle / angleStep);
-    return sectors[index].prize;
-}
         
+        function addToJackpot(){
+            const add=Math.floor(Math.random()*5)+1;
+            jackpotTotal+=add;
+            updateJackpotDisplay();
+            return add;
+        }
         
-        function spin() {
-            if (spinning) return;
-            
-            const btn = document.getElementById('spinButton');
-            spinning = true;
-            btn.disabled = true;
-            document.getElementById('result').textContent = '';
-            
-            const spins = 5 + Math.floor(Math.random() * 5);
-            const targetRotation = rotation + (Math.PI * 2 * spins) + Math.random() * Math.PI * 2;
-            const duration = 2000;
-            const startTime = Date.now();
-            const startRotation = rotation;
-            
-            function animate() {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                const easeOut = 1 - Math.pow(1 - progress, 3);
-                rotation = startRotation + (targetRotation - startRotation) * easeOut;
-                
-                drawWheel();
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    spinning = false;
-                    btn.disabled = false;
+        function resetJackpot(){
+            const total=jackpotTotal;
+            jackpotTotal=0;
+            updateJackpotDisplay();
+            return total;
+        }
+        
+        function drawWheel(){
+            ctx.clearRect(0,0,500,500);
+            for(let i=0;i<sectors.length;i++){
+                const s=sectors[i],start=i*ANGLE+rot,end=start+ANGLE;
+                ctx.beginPath();ctx.moveTo(250,250);ctx.arc(250,250,240,start,end);ctx.closePath();
+                ctx.fillStyle=s.color;ctx.fill();ctx.strokeStyle='#0a0a0f';ctx.lineWidth=3;ctx.stroke();
+                ctx.save();ctx.translate(250,250);ctx.rotate(start+ANGLE/2);
+                ctx.font='bold 18px "Segoe UI"';ctx.fillStyle='#fff';ctx.shadowColor='#000';ctx.shadowBlur=8;
+                ctx.fillText(s.label,175,0);ctx.restore();
+            }
+            ctx.beginPath();ctx.arc(250,250,40,0,TAU);ctx.fillStyle='#0a0a0f';ctx.fill();
+            ctx.strokeStyle='#00d4ff';ctx.lineWidth=4;ctx.stroke();
+            ctx.font='bold 20px "Segoe UI"';ctx.fillStyle='#00d4ff';ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillText('SINED',250,250);
+        }
+        
+        function getPrize(){
+            const normalized=(rot%TAU+TAU)%TAU;
+            const pointerAngle=(Math.PI*1.5-normalized+TAU)%TAU;
+            const index=Math.floor(pointerAngle/ANGLE);
+            return sectors[index].prize;
+        }
+        
+        function spin(){
+            if(spinning)return;spinning=true;spinBtn.disabled=true;
+            prizeDisplay.innerHTML='... <small>л</small>';
+            addToJackpot(); // Каждое вращение добавляет в джекпот
+            const target=rot+(8+Math.random()*6)*TAU,start=Date.now();
+            function anim(){
+                const p=Math.min((Date.now()-start)/3000,1),ease=1-Math.pow(1-p,3);
+                rot=(rot+(target-rot)*ease)%TAU;drawWheel();
+                if(p<1)requestAnimationFrame(anim);
+                else{
+                    spinning=false;spinBtn.disabled=false;
                     
-                    const prize = getPrize();
-                    const resultDiv = document.getElementById('result');
+                    // Проверка супер-призов
+                    let superPrize=null;
+                    for(const sp of SUPER_PRIZES){if(Math.random()<sp.chance){superPrize=sp.name;break;}}
                     
-                    if (prize > 0) {
-                        resultDiv.textContent = `🎉 ВЫИГРЫШ: +${prize} ЛИТРОВ!`;
-                        confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
-                    } else {
-                        resultDiv.textContent = '😢 ПУСТО';
+                    if(superPrize){
+                        prizeDisplay.innerHTML=`🌟 ${superPrize} 🌟`;
+                        confetti({particleCount:400,spread:120,origin:{y:0.6}});
+                        setTimeout(()=>confetti({particleCount:300,spread:140,origin:{y:0.4,x:0.3}}),300);
+                        setTimeout(()=>confetti({particleCount:300,spread:140,origin:{y:0.4,x:0.7}}),600);
+                    }else{
+                        const prize=getPrize();
+                        if(prize==='jackpot'){
+                            const total=resetJackpot();
+                            prizeDisplay.innerHTML=`🏆 ДЖЕКПОТ! <small>+${total} л</small>`;
+                            confetti({particleCount:500,spread:150,origin:{y:0.5}});
+                        }else if(prize>0){
+                            prizeDisplay.innerHTML=`${prize} <small>л</small>`;
+                            confetti({particleCount:150,spread:80,origin:{y:0.6}});
+                        }else{
+                            prizeDisplay.innerHTML=`0 <small>л</small>`;
+                        }
+                    }
+                    
+                    // Отправка в бота
+                    if(window.Telegram&&window.Telegram.WebApp){
+                        window.Telegram.WebApp.sendData(JSON.stringify({
+                            action:"roulette_result",
+                            prize:superPrize||getPrize(),
+                            isSuper:!!superPrize
+                        }));
                     }
                 }
             }
-            
-            animate();
+            requestAnimationFrame(anim);
         }
         
-        drawWheel();
-        document.getElementById('spinButton').addEventListener('click', spin);
+        drawWheel();spinBtn.addEventListener('click',spin);
+    </script>
+
+    <script>
+        // ========== НЕЙРО-ФОН ==========
+        (function(){
+            const canvas=document.getElementById('canvas-neural');
+            const renderer=new THREE.WebGLRenderer({canvas,alpha:false,antialias:true});
+            renderer.setSize(innerWidth,innerHeight);renderer.setClearColor(0x050508);
+            const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x050508,0.002);
+            const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,0.1,1000);
+            camera.position.set(0,6,22);
+            
+            const starsGeo=new THREE.BufferGeometry();const posArr=new Float32Array(3000*3);const colArr=new Float32Array(3000*3);
+            for(let i=0;i<3000*3;i+=3){
+                const r=50+Math.random()*150,theta=Math.random()*TAU,phi=Math.acos(2*Math.random()-1);
+                posArr[i]=r*Math.sin(phi)*Math.cos(theta);posArr[i+1]=r*Math.sin(phi)*Math.sin(theta);posArr[i+2]=r*Math.cos(phi);
+                const c=new THREE.Color().setHSL(0.6+Math.random()*0.3,0.8,0.5+Math.random()*0.3);
+                colArr[i]=c.r;colArr[i+1]=c.g;colArr[i+2]=c.b;
+            }
+            starsGeo.setAttribute('position',new THREE.BufferAttribute(posArr,3));
+            starsGeo.setAttribute('color',new THREE.BufferAttribute(colArr,3));
+            scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({size:0.15,vertexColors:true,blending:THREE.AdditiveBlending})));
+            
+            const pGeo=new THREE.BufferGeometry();const pPos=new Float32Array(800*3);
+            for(let i=0;i<800*3;i+=3){pPos[i]=(Math.random()-0.5)*30;pPos[i+1]=(Math.random()-0.5)*20;pPos[i+2]=(Math.random()-0.5)*30;}
+            pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+            const pMat=new THREE.PointsMaterial({color:0x667eea,size:0.08,blending:THREE.AdditiveBlending});
+            const particles=new THREE.Points(pGeo,pMat);scene.add(particles);
+            
+            let time=0;
+            function animate(){requestAnimationFrame(animate);time+=0.005;particles.rotation.y+=0.001;renderer.render(scene,camera);}
+            animate();
+            window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+        })();
     </script>
 </body>
 </html>
